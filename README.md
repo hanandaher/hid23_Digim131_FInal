@@ -8,6 +8,11 @@ A maya tool that generates a basic beach scene, including sand, water, palm tree
 
 
 ### Project Structure: 
+beach_demo/
+ main.py               # Entry point, config, build_beach()
+ beach_materials.py    # create_material, assign_material
+ geometry.py           # create_water, create_sand, create_palmtree, create_seashells
+ README.md             # This File
 
 
 
