@@ -4,10 +4,18 @@
 ### What it does:
 A maya tool that generates a basic beach scene, including sand, water, palm trees, and seashells. Artists can control palm tree height, seashell variation, and size.
 
-### Planned Features:
 
+### Planned Features
+- [x] Core geometry functions (Week 6)
+- [ ] Data-driven configuration (Week 7)
+- [ ] Error handling + debug mode (Week 8)
+- [ ] Maya UI window + JSON save/load (Week 9)
+- [ ] Polish + documentation (Week 10)
+
+
+
+### Project Structure:
 ```
-### Project Structure: 
 beach_demo/
      main.py               # Entry point, config, build_beach()
      beach_materials.py    # create_material, assign_material
