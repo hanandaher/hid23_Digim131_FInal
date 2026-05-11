@@ -7,18 +7,29 @@ A maya tool that generates a basic beach scene, including sand, water, palm tree
 Planned Features:
 
 
-Project Structure:
+Project Structure: 
 
 
 
 Functions:
+create_water(width, length, position) - ocean water
+
+create_seashells(width, length, scale, positon, axis) - seashell placement
+
+create_palmtree(width, length, scale, position, axis) - palmtree placement
+
+create_sand(width, length, position) - sand
 
 
 Beach_materials.py
+create_material(name,color) - lambert shader with RGB
 
+assign_material(obj_name, shader_name) - Apply shader to object
 
 How to run:
-
+1. Open Maya
+2. Open Script Editor (Windows > General Editors > Script Editor)
+3. Source main.py from the beach_demo folder
 
 
 Author:
