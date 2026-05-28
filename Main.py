@@ -1,10 +1,10 @@
-""''
+"""
 main.py -- Beach Generator (W7)
 =======================================
 Digim 131 - Week 7 | Author: Hanan
 
 Assembles a basic beach environment from configuration data using the Builders dispatcher pattern
-""''
+"""
 
 import os
 import sys
@@ -51,8 +51,8 @@ config = {
 "leaves": {
     "width": 15,
     "height": 20,
-    "scale": 15
-    "length": 15
+    "scale": 15,
+    "length": 15,
     "position": (5,15,2)
 },
 
@@ -60,8 +60,8 @@ config = {
 "trunk": {
     "width": 10,
     "height": 15,
-    "scale": 15
-    "length": 10
+    "scale": 15,
+    "length": 10,
     "position": (5,0,2)
 },
 
@@ -79,41 +79,39 @@ config = {
 # ---------------------------------------------------------------------------
 # Dispatcher
 # ---------------------------------------------------------------------------
-
 def create_element(data):
-    def create_element(data):
-        """Dispatch one config entry to the correct builder function.
+    """Dispatch one config entry to the correct builder function.
 
-        Looks up data["type"] in BUILDERS and calls the matching function
-        with the remaining keys as ** keyword arguments.
+    Looks up data["type"] in BUILDERS and calls the matching function
+    with the remaining keys as ** keyword arguments.
 
-        Args:
-            data (dict): One entry from FORTRESS_CONFIG. Must have a "type" key.
+    Args:
+        data (dict): One entry from FORTRESS_CONFIG. Must have a "type" key.
 
-        Returns:
-            str or None: The created Maya node name, or None if failed.
-        """
-        element_type = data.get("type")
+    Returns:
+        str or None: The created Maya node name, or None if failed.
+    """
+    element_type = data.get("type")
 
-        # Check: does the entry have a type?
-        if not element_type:
-            cmds.warning("Config entry missing 'type' key -- skipping.")
-            return None
+    # Check: does the entry have a type?
+    if not element_type:
+        cmds.warning("Config entry missing 'type' key -- skipping.")
+        return None
 
-        # Check: do we have a builder for this type?
-        builder = BUILDERS.get(element_type)
-        if not builder:
-            cmds.warning("Unknown type '{}' -- skipping.".format(element_type))
-            return None
+    # Check: do we have a builder for this type?
+    builder = BUILDERS.get(element_type)
+    if not builder:
+        cmds.warning("Unknown type '{}' -- skipping.".format(element_type))
+        return None
 
-        # Strip "type" before ** unpacking -- it's not a function parameter
-        params = {k: v for k, v in data.items() if k != "type"}
+    # Strip "type" before ** unpacking -- it's not a function parameter
+    params = {k: v for k, v in data.items() if k != "type"}
 
-        try:
-            return builder(**params)
-        except TypeError as error:
-            cmds.warning("Bad params for '{}': {}".format(element_type, error))
-            return None
+    try:
+        return builder(**params)
+    except TypeError as error:
+        cmds.warning("Bad params for '{}': {}".format(element_type, error))
+        return None
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
