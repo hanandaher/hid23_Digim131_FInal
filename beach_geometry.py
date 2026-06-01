@@ -1,5 +1,4 @@
-mport
-maya.cmds as cmds
+import maya.cmds as cmds
 import random
 
 
