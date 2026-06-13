@@ -1,144 +1,264 @@
-mport
-maya.cmds as cmds
-import random
+"""
+Main.py -- Beach Generator
+=======================================
+Digim 131 Final | Author: Hanan Daher
+Assembles a basic beach environment from configuration data
+using the Builders dispatcher pattern.
 
+How to run:
+  1. Open Maya
+  2. Open Script Editor  (Windows > General Editors > Script Editor)
+  3. Set the tab to Python
+  4. Paste this file (or use  exec(open('/path/to/Main.py').read()) )
+  5. Call:  build_beach()
+"""
 
-def create_sand(width=60, length=60, position=(0, 0, 0)):
-    """Create a flat sand ground plane.
+import os
+import sys
+
+import maya.cmds as cmds
+
+# ---------------------------------------------------------------------------
+# Make sure the folder containing this file is on sys.path so we can import
+# the sibling modules (beach_geometry, beach_materials).
+# ---------------------------------------------------------------------------
+try:
+    _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    # Inside Maya's Script Editor __file__ doesn't exist; fall back to
+    # the project root directory.
+    _THIS_DIR = cmds.workspace(query=True, rootDirectory=True)
+
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
+
+import beach_geometry as geo
+import beach_materials as mat
+
+# ---------------------------------------------------------------------------
+# Scene-level constants
+# ---------------------------------------------------------------------------
+
+SAND_LENGTH = 60        # half-size of the sand/water planes
+
+# ---------------------------------------------------------------------------
+# Material Palette
+# "key": (shader_name, (R, G, B))
+# ---------------------------------------------------------------------------
+MATERIAL_PALETTE = {
+    "sand":    ("sand_mat",    (0.86, 0.79, 0.55)),
+    "water":   ("water_mat",   (0.10, 0.45, 0.65)),
+    "trunk":   ("trunk_mat",   (0.42, 0.26, 0.12)),
+    "leaves":  ("leaves_mat",  (0.18, 0.55, 0.18)),
+    "shell":   ("shell_mat",   (0.95, 0.88, 0.75)),
+}
+
+# ---------------------------------------------------------------------------
+# Map each element "type" to which material key it should receive
+# ---------------------------------------------------------------------------
+TYPE_MATERIALS = {
+    "sand":      "sand",
+    "water":     "water",
+    "trunk":     "trunk",
+    "leaves":    "leaves",
+    "seashell":  "shell",
+}
+
+# ---------------------------------------------------------------------------
+# Builders dispatcher
+# Maps element type string -> geometry function
+# ---------------------------------------------------------------------------
+BUILDERS = {
+    "sand":     geo.create_sand,
+    "water":    geo.create_water,
+    "trunk":    geo.create_palmtree,
+    "leaves":   geo.create_palmtree,
+    "seashell": geo.create_seashells,
+}
+
+# ---------------------------------------------------------------------------
+# Beach Configuration
+# Each dict defines one element.  "type" picks the builder; the rest are
+# keyword arguments forwarded to that function.
+# Add more entries here to populate your scene — no code changes needed.
+# ---------------------------------------------------------------------------
+BEACH_CONFIG = [
+    # ---- Ground ----
+    {
+        "type":     "sand",
+        "width":    60,
+        "length":   60,
+        "position": (0, 0, 0),
+    },
+
+    # ---- Ocean ----
+    {
+        "type":     "water",
+        "width":    60,
+        "length":   40,
+        "position": (0, 0.05, 30),
+    },
+
+    # ---- Palm Tree 1 ----
+    {
+        "type":     "trunk",
+        "width":    1,
+        "height":   12,
+        "scale":    1.0,
+        "length":   1,
+        "position": (8, 0, -5),
+        "axis":     "y",
+    },
+    {
+        "type":     "leaves",
+        "width":    1,
+        "height":   12,
+        "scale":    1.0,
+        "length":   8,
+        "position": (8, 0, -5),
+        "axis":     "y",
+    },
+
+    # ---- Palm Tree 2 (taller, offset) ----
+    {
+        "type":     "trunk",
+        "width":    1,
+        "height":   15,
+        "scale":    1.0,
+        "length":   1,
+        "position": (-10, 0, -8),
+        "axis":     "y",
+    },
+    {
+        "type":     "leaves",
+        "width":    1,
+        "height":   15,
+        "scale":    1.1,
+        "length":   9,
+        "position": (-10, 0, -8),
+        "axis":     "y",
+    },
+
+    # ---- Seashell clusters ----
+    {
+        "type":     "seashell",
+        "width":    0.5,
+        "height":   0.3,
+        "scale":    1.0,
+        "position": (3, 0, 5),
+        "axis":     "y",
+    },
+    {
+        "type":     "seashell",
+        "width":    0.4,
+        "height":   0.25,
+        "scale":    0.8,
+        "position": (-5, 0, 8),
+        "axis":     "y",
+    },
+]
+
+# ---------------------------------------------------------------------------
+# Dispatcher
+# ---------------------------------------------------------------------------
+
+def create_element(data):
+    """Dispatch one config entry to the correct builder function.
+
+    Looks up data["type"] in BUILDERS and calls the matching function
+    with the remaining keys as **keyword arguments.
 
     Args:
-        width    (float): Width along X.
-        length   (float): Length along Z.
-        position (tuple): (x, y, z) world position.
+        data (dict): One entry from BEACH_CONFIG.  Must have a "type" key.
 
     Returns:
-        str: Maya transform node name.
+        str or None: The created Maya node name, or None if it failed.
     """
-    plane, _ = cmds.polyPlane(
-        width=width,
-        height=length,
-        subdivisionsX=10,
-        subdivisionsY=10,
-        name="sand_#"
-    )
-    cmds.move(position[0], position[1], position[2], plane)
-    return plane
+    element_type = data.get("type")
+
+    # Validate: entry has a type
+    if not element_type:
+        cmds.warning("Config entry missing 'type' key -- skipping.")
+        return None
+
+    # Validate: we have a builder for this type
+    builder = BUILDERS.get(element_type)
+    if not builder:
+        cmds.warning("Unknown element type '{}' -- skipping.".format(element_type))
+        return None
+
+    # Strip "type" before ** unpacking — it's not a geometry function parameter
+    params = {k: v for k, v in data.items() if k != "type"}
+
+    try:
+        return builder(**params)
+    except TypeError as error:
+        cmds.warning("Bad params for type '{}': {}".format(element_type, error))
+        return None
 
 
-def create_water(width=60, length=60, position=(0, 0.05, 10)):
-    """Create an ocean water plane slightly above the sand.
+# ---------------------------------------------------------------------------
+# Driver
+# ---------------------------------------------------------------------------
+
+def build_beach(config=None):
+    """Build a complete beach scene from a list of config dicts.
 
     Args:
-        width    (float): Width along X.
-        length   (float): Length along Z.
-        position (tuple): (x, y, z) world position.
+        config (list): List of element dicts.  Defaults to BEACH_CONFIG.
 
     Returns:
-        str: Maya transform node name.
+        list: Names of all Maya nodes that were created.
     """
-    plane, _ = cmds.polyPlane(
-        width=width,
-        height=length,
-        subdivisionsX=20,
-        subdivisionsY=20,
-        name="water_#"
-    )
-    cmds.move(position[0], position[1], position[2], plane)
-    return plane
+    if config is None:
+        config = BEACH_CONFIG
 
+    # Fresh scene
+    cmds.file(new=True, force=True)
 
-def create_palmtree(width=1, height=10, scale=1.0, length=1, position=(0, 0, 0), axis="y"):
-    """Create a palm tree: tapered cylinder trunk + radiating leaf crown.
-
-    Args:
-        width    (float): Trunk base radius multiplier.
-        height   (float): Trunk height multiplier.
-        scale    (float): Overall size multiplier.
-        length   (float): Leaf length (passed through from config).
-        position (tuple): (x, y, z) base position.
-        axis     (str):   Growth axis (always y).
-
-    Returns:
-        str: Maya group node name.
-    """
-    px, py, pz = position
-    r = max(0.1, width * scale * 0.05)  # trunk base radius
-    h = max(1.0, height * scale * 0.8)  # trunk height
-
-    parts = []
-
-    # -- Trunk: tapered cylinder --
-    trunk, _ = cmds.polyCylinder(
-        radius=r,
-        height=h,
-        subdivisionsX=8,
-        subdivisionsY=4,
-        name="palm_trunk_#"
-    )
-    cmds.move(px, py + h * 0.5, pz, trunk)
-    parts.append(trunk)
-
-    # -- Leaf crown: 6 flat boxes fanned around the treetop --
-    leaf_count = 6
-    leaf_len = h * 0.65
-    leaf_w = r * 3.0
-    leaf_h = h * 0.05
-    crown_y = py + h
-
-    for i in range(leaf_count):
-        angle = (360.0 / leaf_count) * i
-        leaf, _ = cmds.polyCube(
-            width=leaf_len,
-            height=leaf_h,
-            depth=leaf_w,
-            name="palm_leaf_#"
+    # -- Create materials --
+    shaders = {}
+    for key, (name, color) in MATERIAL_PALETTE.items():
+        # Use the simple lambert helper so we only need beach_materials.py
+        shader = cmds.shadingNode("lambert", asShader=True, name=name)
+        sg = cmds.sets(
+            renderable=True, noSurfaceShader=True,
+            empty=True, name=name + "_SG"
         )
-        cmds.move(px, crown_y, pz, leaf, rpr=True)
-        cmds.rotate(0, angle, -30, leaf, r=True)
-        cmds.move(leaf_len * 0.38, 0, 0, leaf, r=True, os=True)
-        parts.append(leaf)
-
-    group = cmds.group(parts, name="palm_tree_#")
-    return group
-
-
-def create_seashells(width=0.5, height=0.2, scale=1.0, position=(0, 0, 0), axis="y"):
-    """Scatter cone-based seashells randomly around a centre point.
-
-    Places between 4 and 8 shells within a patch.
-
-    Args:
-        width    (float): Scatter radius.
-        height   (float): Shell cone height.
-        scale    (float): Size multiplier per shell.
-        position (tuple): (x, y, z) centre of the scatter patch.
-        axis     (str):   Ignored — kept for API compatibility.
-
-    Returns:
-        str: Maya group node name.
-    """
-    px, py, pz = position
-    shells = []
-    count = random.randint(4, 8)
-
-    for i in range(count):
-        ox = random.uniform(-width * 3, width * 3)
-        oz = random.uniform(-width * 3, width * 3)
-        s = scale * random.uniform(0.6, 1.4)
-        r = max(0.05, width * s * 0.5)
-        h = max(0.05, height * s)
-
-        shell, _ = cmds.polyCone(
-            radius=r,
-            height=h,
-            subdivisionsX=8,
-            name="shell_#"
+        cmds.connectAttr(shader + ".outColor", sg + ".surfaceShader", force=True)
+        cmds.setAttr(
+            shader + ".color",
+            color[0], color[1], color[2],
+            type="double3"
         )
-        tilt = random.uniform(60, 90)
-        twist = random.uniform(0, 360)
-        cmds.rotate(tilt, twist, 0, shell)
-        cmds.move(px + ox, py, pz + oz, shell)
-        shells.append(shell)
+        shaders[key] = shader
 
-    group = cmds.group(shells, name="seashells_#")
-    return group
+    results = []
+
+    # -- Build every element in the config list --
+    for entry in config:
+        obj = create_element(entry)
+
+        if obj:
+            # Auto-assign material based on element type
+            mat_key = TYPE_MATERIALS.get(entry.get("type"))
+            if mat_key and mat_key in shaders:
+                mat.assign_material(obj, shaders[mat_key])
+            results.append(obj)
+
+    # Frame everything in the viewport
+    cmds.viewFit(allObjects=True)
+
+    print("=== Beach Complete ===")
+    print("  {} elements created from {} config entries.".format(
+        len(results), len(config)
+    ))
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Auto-run when sourced directly in Maya's Script Editor
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    build_beach()
