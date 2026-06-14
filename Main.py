@@ -9,11 +9,10 @@ Assembles a basic beach environment from configuration data using the Builders d
 import os
 import sys
 import maya.cmds as cmds
+_THIS_DIR = r"C:\Users\hanan\OneDrive\Documents\GitHub\hid23_Digim131_FInal"
 
-try:
-    _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-except NameError:
-    _THIS_DIR = cmds.workspace(query=True, rootDirectory=True)
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
 
     if _THIS_DIR not in sys.path:
         sys.path.insert(0, _THIS_DIR)
