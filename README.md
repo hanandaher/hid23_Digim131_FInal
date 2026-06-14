@@ -46,6 +46,11 @@ assign_material(obj_name, shader_name) - Apply shader to object
 2. Open Script Editor (Windows > General Editors > Script Editor)
 3. Source main.py from the beach_demo folder
 
+### Reflection:
+This project was very fun but honestly so challenging. I find it hard to realize where small mistakes are, commas, indents, etc. I feel as though I have a somewhat good understanding of the language, I can remember what phrases do what. My biggest problem is realizing the small errors and being able to trouble shoot, I think that is the challenge.
+
+  ## Demo Video
+   [Watch the demo]([https://your-onedrive-share-link](https://drexel0-my.sharepoint.com/:f:/r/personal/hid23_drexel_edu/Documents/Digim131FINALRecording?csf=1&web=1&e=2OBcFq))
 
 Author:
 Hanan Daher | DIGIM 131 | Drexel University
